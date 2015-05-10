@@ -1,0 +1,4 @@
+[package]
+name = "gh-keys"
+version = "0.1.0"
+authors = ["Don Petersen <don@donpetersen.net>"]
