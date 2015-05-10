@@ -2,3 +2,7 @@
 name = "gh-keys"
 version = "0.1.0"
 authors = ["Don Petersen <don@donpetersen.net>"]
+
+[dependencies]
+hyper = "0.4.0"
+rustc-serialize = "0.3"
