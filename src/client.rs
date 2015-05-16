@@ -13,7 +13,7 @@ pub struct Key {
 impl Key {
     pub fn to_authorized_keys_line(&self) -> String {
         // TODO hardcoded username, need to set it for the whole collection?
-        return format!("{} hardcodedusername\n", self.key)
+        format!("{} hardcodedusername\n", self.key)
     }
 }
 
@@ -25,7 +25,7 @@ pub struct Hardcoded;
 
 impl KeySource for Hardcoded {
     fn get_keys(&self) -> Vec<Key> {
-        return vec![
+        vec![
             Key{id: 111, key: "ssh-rsa AAAAkey111blah".to_string()},
             Key{id: 222, key: "ssh-rsa AAAAkey222blah".to_string()},
         ]
@@ -55,6 +55,6 @@ impl KeySource for GitHubAPI {
         }
 
         // TODO: Error handle
-        return json::decode(&body).unwrap();
+        json::decode(&body).unwrap()
     }
 }
