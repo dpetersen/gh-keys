@@ -18,13 +18,7 @@ use file::{AuthorizedKeyFileStore, KeyStore};
 fn main() {
     init_logging();
 
-    let args: Vec<String> = env::args().collect();
-    let mut opts = Options::new();
-    opts.optflag("r", "real", "actually hit the GitHub API. This is a dev option that I'm going to remove eventually");
-    let matches = match opts.parse(&args[1..]) {
-        Ok(m) => { m }
-        Err(f) => { panic!(f.to_string()) }
-    };
+    let matches = get_arg_matches();
 
     let keys = if matches.opt_present("r") {
         keys_from_source(client::GitHubAPI)
@@ -49,6 +43,18 @@ fn init_logging() {
 
     if let Err(e) = fern::init_global_logger(logger_config, log::LogLevelFilter::Trace) {
         panic!("Failed to initialize global logger: {}", e);
+    }
+}
+
+fn get_arg_matches() -> getopts::Matches {
+    let args: Vec<String> = env::args().collect();
+    let mut opts = Options::new();
+
+    opts.optflag("r", "real", "actually hit the GitHub API. This is a dev option that I'm going to remove eventually");
+
+    match opts.parse(&args[1..]) {
+        Ok(m) => { m }
+        Err(f) => { panic!(f.to_string()) }
     }
 }
 
