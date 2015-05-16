@@ -5,12 +5,12 @@ use hyper::{Client, header};
 use std::io::Read;
 
 #[derive(RustcDecodable, Debug)]
-pub struct GitHubKey {
+pub struct Key {
     pub id: u32,
     pub key: String
 }
 
-impl GitHubKey {
+impl Key {
     pub fn to_authorized_keys_line(&self) -> String {
         // TODO hardcoded username, need to set it for the whole collection?
         return format!("{} hardcodedusername\n", self.key)
@@ -18,16 +18,16 @@ impl GitHubKey {
 }
 
 pub trait KeySource {
-    fn get_keys(&self) -> Vec<GitHubKey>;
+    fn get_keys(&self) -> Vec<Key>;
 }
 
 pub struct Hardcoded;
 
 impl KeySource for Hardcoded {
-    fn get_keys(&self) -> Vec<GitHubKey> {
+    fn get_keys(&self) -> Vec<Key> {
         return vec![
-            GitHubKey{id: 111, key: "ssh-rsa AAAAkey111blah".to_string()},
-            GitHubKey{id: 222, key: "ssh-rsa AAAAkey222blah".to_string()},
+            Key{id: 111, key: "ssh-rsa AAAAkey111blah".to_string()},
+            Key{id: 222, key: "ssh-rsa AAAAkey222blah".to_string()},
         ]
     }
 }
@@ -35,7 +35,7 @@ impl KeySource for Hardcoded {
 pub struct GitHubAPI;
 
 impl KeySource for GitHubAPI {
-    fn get_keys(&self) -> Vec<GitHubKey> {
+    fn get_keys(&self) -> Vec<Key> {
         let mut client = Client::new();
         let mut response = client
             // TODO: hardcoded name. HTML escape!

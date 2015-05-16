@@ -11,9 +11,9 @@ use std::io::{Write, Read};
 use getopts::Options;
 use std::env;
 
-mod keys;
+mod client;
 
-use keys::{GitHubKey, KeySource};
+use client::{Key, KeySource};
 
 // TODO: figure out how to resolve ~/ or get the user's home directory path.
 const AUTHORIZED_KEYS_PATH: &'static str = "/Users/dpetersen/.ssh/authorized_keys";
@@ -30,9 +30,9 @@ fn main() {
     };
 
     let keys = if matches.opt_present("r") {
-        keys_from_source(keys::GitHubAPI)
+        keys_from_source(client::GitHubAPI)
     } else {
-        keys_from_source(keys::Hardcoded)
+        keys_from_source(client::Hardcoded)
     };
 
     match write_keys(keys) {
@@ -55,11 +55,11 @@ fn init_logging() {
     }
 }
 
-fn keys_from_source<T: KeySource>(source: T) -> Vec<GitHubKey> {
+fn keys_from_source<T: KeySource>(source: T) -> Vec<Key> {
     return source.get_keys()
 }
 
-fn write_keys(keys: Vec<GitHubKey>) -> std::io::Result<usize> {
+fn write_keys(keys: Vec<Key>) -> std::io::Result<usize> {
     let file = OpenOptions::new()
         .read(true)
         .write(true)
