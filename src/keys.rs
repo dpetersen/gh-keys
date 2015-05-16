@@ -32,7 +32,6 @@ impl KeySource for Hardcoded {
     }
 }
 
-#[allow(dead_code)]
 pub struct GitHubAPI;
 
 impl KeySource for GitHubAPI {
