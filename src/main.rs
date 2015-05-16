@@ -5,27 +5,16 @@ extern crate time;
 extern crate hyper;
 extern crate rustc_serialize;
 
+
 use std::fs::OpenOptions;
 use std::io::{Write, Read};
 
-use rustc_serialize::json;
-use hyper::{Client, header};
+mod keys;
+
+use keys::{GitHubKey, KeySource};
 
 // TODO: figure out how to resolve ~/ or get the user's home directory path.
 const AUTHORIZED_KEYS_PATH: &'static str = "/Users/dpetersen/.ssh/authorized_keys";
-
-#[derive(RustcDecodable, Debug)]
-pub struct GitHubKey {
-    id: u32,
-    key: String
-}
-
-impl GitHubKey {
-    pub fn to_authorized_keys_line(&self) -> String {
-        // TODO hardcoded username, need to set it for the whole collection?
-        return format!("{} hardcodedusername\n", self.key)
-    }
-}
 
 fn init_logging() {
     let logger_config = fern::DispatchConfig {
@@ -33,7 +22,7 @@ fn init_logging() {
             format!("[{}][{}] {}", time::now().strftime("%H:%M:%S").unwrap(), level, msg)
         }),
         output: vec![fern::OutputConfig::stdout()],
-        level: log::LogLevelFilter::Trace,
+        level: log::LogLevelFilter::Debug,
     };
 
     if let Err(e) = fern::init_global_logger(logger_config, log::LogLevelFilter::Trace) {
@@ -43,13 +32,17 @@ fn init_logging() {
 
 fn main() {
     init_logging();
-    match write_keys(get_hardcoded_keys()) {
+    match write_keys(get_keys(keys::Hardcoded)) {
         Ok(count) => println!("Wrote {} key(s)!", count),
         Err(e) => panic!("There was a problem writing the keys: {}", e),
     }
 }
 
-fn write_keys(keys: Vec<GitHubKey>) -> std::io::Result<usize> {
+fn get_keys<T: KeySource>(source: T) -> Vec<GitHubKey> {
+    source.get_keys()
+}
+
+fn write_keys(keys: Vec<keys::GitHubKey>) -> std::io::Result<usize> {
     let file = OpenOptions::new()
         .read(true)
         .write(true)
@@ -80,38 +73,4 @@ fn write_keys(keys: Vec<GitHubKey>) -> std::io::Result<usize> {
         },
         Err(e) => return Result::Err(e),
     }
-}
-
-// TODO: get rid of dead_code when you start using get_keys again.
-#[allow(dead_code)]
-fn get_hardcoded_keys() -> Vec<GitHubKey> {
-    return vec![
-        GitHubKey{id: 111, key: "ssh-rsa AAAAkey111blah".to_string()},
-        GitHubKey{id: 222, key: "ssh-rsa AAAAkey222blah".to_string()},
-    ]
-}
-
-// TODO: get rid of dead_code when you start using it again.
-#[allow(dead_code)]
-fn get_keys() -> Vec<GitHubKey> {
-    let mut client = Client::new();
-    let mut response = client
-        // TODO: hardcoded name. HTML escape!
-        .get("https://api.github.com/users/dpetersen/keys")
-        .header(header::UserAgent("gh-keys".to_string()))
-        // TODO: Error handle
-        // - User doesn't exist
-        // - GitHub problem
-        .send().unwrap();
-    let mut body = String::new();
-    // TODO: Error handle
-    response.read_to_string(&mut body).ok().expect("Failed to read response!");
-
-    // TODO: Error handle
-    if response.status != hyper::Ok {
-        panic!("Unxpected status {}:\n\n{}", response.status, body);
-    }
-
-    // TODO: Error handle
-    return json::decode(&body).unwrap();
 }
