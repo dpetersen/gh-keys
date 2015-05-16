@@ -1,3 +1,7 @@
+#[macro_use]
+extern crate log;
+extern crate fern;
+extern crate time;
 extern crate hyper;
 extern crate rustc_serialize;
 
@@ -23,7 +27,22 @@ impl GitHubKey {
     }
 }
 
+fn init_logging() {
+    let logger_config = fern::DispatchConfig {
+        format: Box::new(|msg: &str, level: &log::LogLevel, _location: &log::LogLocation| {
+            format!("[{}][{}] {}", time::now().strftime("%H:%M:%S").unwrap(), level, msg)
+        }),
+        output: vec![fern::OutputConfig::stdout()],
+        level: log::LogLevelFilter::Trace,
+    };
+
+    if let Err(e) = fern::init_global_logger(logger_config, log::LogLevelFilter::Trace) {
+        panic!("Failed to initialize global logger: {}", e);
+    }
+}
+
 fn main() {
+    init_logging();
     match write_keys(get_hardcoded_keys()) {
         Ok(count) => println!("Wrote {} key(s)!", count),
         Err(e) => panic!("There was a problem writing the keys: {}", e),
@@ -46,11 +65,11 @@ fn write_keys(keys: Vec<GitHubKey>) -> std::io::Result<usize> {
 
             for key in &keys {
                 if existing_keys.contains(&key.key) {
-                    println!("Skipping key '{}', already exists", key.id);
+                    debug!("Skipping key '{}', already exists", key.id);
                     continue
                 }
 
-                println!("Writing key '{}'", key.id);
+                info!("Writing key '{}'", key.id);
                 match f.write_all(&key.to_authorized_keys_line().as_bytes()) {
                     Ok(_) => written_count += 1,
                     Err(e) => return Result::Err(e),
