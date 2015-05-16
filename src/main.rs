@@ -13,10 +13,33 @@ use std::env;
 
 mod keys;
 
-use keys::KeySource;
+use keys::{GitHubKey, KeySource};
 
 // TODO: figure out how to resolve ~/ or get the user's home directory path.
 const AUTHORIZED_KEYS_PATH: &'static str = "/Users/dpetersen/.ssh/authorized_keys";
+
+fn main() {
+    init_logging();
+
+    let args: Vec<String> = env::args().collect();
+    let mut opts = Options::new();
+    opts.optflag("r", "real", "actually hit the GitHub API. This is a dev option that I'm going to remove eventually");
+    let matches = match opts.parse(&args[1..]) {
+        Ok(m) => { m }
+        Err(f) => { panic!(f.to_string()) }
+    };
+
+    let keys = if matches.opt_present("r") {
+        keys_from_source(keys::GitHubAPI)
+    } else {
+        keys_from_source(keys::Hardcoded)
+    };
+
+    match write_keys(keys) {
+        Ok(count) => println!("Wrote {} key(s)!", count),
+        Err(e) => panic!("There was a problem writing the keys: {}", e),
+    }
+}
 
 fn init_logging() {
     let logger_config = fern::DispatchConfig {
@@ -32,30 +55,11 @@ fn init_logging() {
     }
 }
 
-fn main() {
-    init_logging();
-    let args: Vec<String> = env::args().collect();
-    let mut opts = Options::new();
-    opts.optflag("r", "real", "actually hit the GitHub API. This is a dev option that I'm going to remove eventually");
-    let matches = match opts.parse(&args[1..]) {
-        Ok(m) => { m }
-        Err(f) => { panic!(f.to_string()) }
-    };
-
-    let write_result = if matches.opt_present("r") {
-        write_keys(keys::GitHubAPI)
-    } else {
-        write_keys(keys::Hardcoded)
-    };
-
-    match write_result {
-        Ok(count) => println!("Wrote {} key(s)!", count),
-        Err(e) => panic!("There was a problem writing the keys: {}", e),
-    }
+fn keys_from_source<T: KeySource>(source: T) -> Vec<GitHubKey> {
+    return source.get_keys()
 }
 
-fn write_keys<T: KeySource>(source: T) -> std::io::Result<usize> {
-    let found_keys = source.get_keys();
+fn write_keys(keys: Vec<GitHubKey>) -> std::io::Result<usize> {
     let file = OpenOptions::new()
         .read(true)
         .write(true)
@@ -69,7 +73,7 @@ fn write_keys<T: KeySource>(source: T) -> std::io::Result<usize> {
             let mut existing_keys = String::new();
             f.read_to_string(&mut existing_keys).ok().expect("Failed reading authorized_keys!");
 
-            for key in &found_keys {
+            for key in &keys {
                 if existing_keys.contains(&key.key) {
                     debug!("Skipping key '{}', already exists", key.id);
                     continue
